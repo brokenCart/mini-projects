@@ -36,21 +36,11 @@ func run() error {
 		return err
 	}
 
-	// Get the data from the db
-	rows, err := urlshortener.GetData(db)
-	if err != nil {
-		return err
-	}
-	defer rows.Close() // Close the rows when the function exits
-
 	// Create the default mux
 	mux := defaultMux()
 
 	// Create the db handler
-	dbHandler, err := urlshortener.DBHandler(rows, mux)
-	if err != nil {
-		return err
-	}
+	dbHandler := urlshortener.DBHandler(db, mux)
 
 	// Read the json/yaml file
 	content, err := os.ReadFile(*filenamePtr)
@@ -64,18 +54,18 @@ func run() error {
 
 	// Create the file handler based on the file extension
 	switch extension {
-	case "yml":
+	case ".yml", ".yaml":
 		fileHandler, err = urlshortener.YAMLHandler([]byte(content), dbHandler)
 		if err != nil {
 			return err
 		}
-	case "json":
+	case ".json":
 		fileHandler, err = urlshortener.JSONHandler([]byte(content), dbHandler)
 		if err != nil {
 			return err
 		}
 	default:
-		return errors.New("Invalid file extension: Only .yml and .json allowed")
+		return errors.New("invalid file extension: Only .yml/.yaml and .json allowed")
 	}
 
 	// Start the server

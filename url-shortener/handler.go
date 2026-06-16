@@ -45,16 +45,20 @@ func JSONHandler(j []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return mapHandler, nil
 }
 
-func DBHandler(rows *sql.Rows, fallback http.Handler) (http.HandlerFunc, error) {
-	// Parse the database rows and build a map of paths to URLs, then return a MapHandler using that map.
-	// If there is an error parsing the database rows, return an error.
-	r, err := parseDBRows(rows)
-	if err != nil {
-		return nil, err
+func DBHandler(db *sql.DB, fallback http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		var url string
+
+		// Get the url from the DB
+		query := `SELECT url FROM mappings WHERE path=?`
+		err := db.QueryRow(query, path).Scan(&url)
+		if err == nil {
+			http.Redirect(w, r, url, http.StatusFound)
+			return
+		}
+		fallback.ServeHTTP(w, r)
 	}
-	m := buildMap(r)
-	mapHandler := MapHandler(m, fallback)
-	return mapHandler, nil
 }
 
 func parseYAML(yml []byte) ([]PathMapping, error) {
@@ -75,25 +79,6 @@ func parseJSON(j []byte) ([]PathMapping, error) {
 		return nil, err
 	}
 	return configs, nil
-}
-
-func parseDBRows(rows *sql.Rows) ([]PathMapping, error) {
-	// Parse the database rows into a slice of DBPathToURL structs.
-	result := []PathMapping{}
-	for rows.Next() {
-		var obj PathMapping
-		err := rows.Scan(&obj.Path, &obj.URL)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, obj)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
 func buildMap(configs []PathMapping) map[string]string {

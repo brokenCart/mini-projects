@@ -31,10 +31,3 @@ func CreateTable(db *sql.DB) error {
 	_, err := db.Exec(createTableSQL)
 	return err
 }
-
-// GetData retrieves all rows from the "mappings" table in the SQLite database.
-func GetData(db *sql.DB) (*sql.Rows, error) {
-	getDataSQL := `SELECT path, url FROM mappings`
-	rows, err := db.Query(getDataSQL)
-	return rows, err
-}
