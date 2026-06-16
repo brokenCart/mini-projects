@@ -14,7 +14,7 @@ func MapHandler(pathToUrls map[string]string, fallback http.Handler) http.Handle
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if url, ok := pathToUrls[path]; ok {
-			http.Redirect(w, r, url, http.StatusMovedPermanently)
+			http.Redirect(w, r, url, http.StatusFound)
 		} else {
 			fallback.ServeHTTP(w, r)
 		}
@@ -28,7 +28,7 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := buildMapFromYAML(y)
+	m := buildMap(y)
 	mapHandler := MapHandler(m, fallback)
 	return mapHandler, nil
 }
@@ -40,7 +40,7 @@ func JSONHandler(j []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := buildMapFromJSON(js)
+	m := buildMap(js)
 	mapHandler := MapHandler(m, fallback)
 	return mapHandler, nil
 }
@@ -52,83 +52,60 @@ func DBHandler(rows *sql.Rows, fallback http.Handler) (http.HandlerFunc, error) 
 	if err != nil {
 		return nil, err
 	}
-	m := buildMapFromDBRows(r)
+	m := buildMap(r)
 	mapHandler := MapHandler(m, fallback)
 	return mapHandler, nil
 }
 
-func parseYAML(yml []byte) ([]YAMLPathToURL, error) {
+func parseYAML(yml []byte) ([]PathMapping, error) {
 	// Parse the YAML into a slice of YAMLPathToURL structs.
-	yConfigs := []YAMLPathToURL{}
-	err := yaml.Unmarshal(yml, &yConfigs)
+	configs := []PathMapping{}
+	err := yaml.Unmarshal(yml, &configs)
 	if err != nil {
 		return nil, err
 	}
-	return yConfigs, nil
+	return configs, nil
 }
 
-func parseJSON(j []byte) ([]JSONPathToURL, error) {
+func parseJSON(j []byte) ([]PathMapping, error) {
 	// Parse the JSON into a slice of JSONPathToURL structs.
-	jConfigs := []JSONPathToURL{}
-	err := json.Unmarshal(j, &jConfigs)
+	configs := []PathMapping{}
+	err := json.Unmarshal(j, &configs)
 	if err != nil {
 		return nil, err
 	}
-	return jConfigs, nil
+	return configs, nil
 }
 
-func parseDBRows(rows *sql.Rows) ([]DBPathToURL, error) {
+func parseDBRows(rows *sql.Rows) ([]PathMapping, error) {
 	// Parse the database rows into a slice of DBPathToURL structs.
-	result := []DBPathToURL{}
+	result := []PathMapping{}
 	for rows.Next() {
-		var obj DBPathToURL
+		var obj PathMapping
 		err := rows.Scan(&obj.Path, &obj.URL)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, obj)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
-func buildMapFromYAML(yConfigs []YAMLPathToURL) map[string]string {
-	// Build a map from the slice of YAMLPathToURL structs.
+func buildMap(configs []PathMapping) map[string]string {
+	// Build a map from the slice of PathMapping structs.
 	resultMap := map[string]string{}
-	for _, y := range yConfigs {
-		resultMap[y.Path] = y.URL
+	for _, c := range configs {
+		resultMap[c.Path] = c.URL
 	}
 	return resultMap
 }
 
-func buildMapFromJSON(jConfigs []JSONPathToURL) map[string]string {
-	// Build a map from the slice of JSONPathToURL structs.
-	resultMap := map[string]string{}
-	for _, j := range jConfigs {
-		resultMap[j.Path] = j.URL
-	}
-	return resultMap
-}
-
-func buildMapFromDBRows(dbConfigs []DBPathToURL) map[string]string {
-	// Build a map from the slice of DBPathToURL structs.
-	resultMap := map[string]string{}
-	for _, r := range dbConfigs {
-		resultMap[r.Path] = r.URL
-	}
-	return resultMap
-}
-
-type YAMLPathToURL struct {
-	Path string `yaml:"path"`
-	URL  string `yaml:"url"`
-}
-
-type JSONPathToURL struct {
-	Path string `json:"path"`
-	URL  string `json:"url"`
-}
-
-type DBPathToURL struct {
-	Path string
-	URL  string
+type PathMapping struct {
+	Path string `json:"path" yaml:"path"`
+	URL  string `json:"url" yaml:"url"`
 }

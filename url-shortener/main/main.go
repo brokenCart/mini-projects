@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 	"urlshortener"
 )
 
@@ -20,6 +20,7 @@ func main() {
 func run() error {
 	// Initialized the flags
 	filenamePtr := flag.String("file", "mappings.yml", "a json/yml file which has path and url as fields (default \"mappings.yml\")")
+	portPtr := flag.String("port", "8080", "the port to start the web server on (default 8080)")
 	flag.Parse()
 
 	// Get the db connection
@@ -58,7 +59,7 @@ func run() error {
 	}
 
 	// Get the file extension
-	extension := strings.Split(*filenamePtr, ".")[1]
+	extension := filepath.Ext(*filenamePtr)
 	var fileHandler http.HandlerFunc
 
 	// Create the file handler based on the file extension
@@ -78,8 +79,10 @@ func run() error {
 	}
 
 	// Start the server
-	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", fileHandler)
+	fmt.Println("Starting the server on :" + *portPtr)
+	if err := http.ListenAndServe(":"+*portPtr, fileHandler); err != nil {
+		return err
+	}
 	return nil
 }
 
