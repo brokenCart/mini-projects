@@ -9,6 +9,8 @@ import (
 )
 
 func MapHandler(pathToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
+	// Return an http.HandlerFunc which maps the paths to their URLs using a map
+	// and calls the fallback handler if the path is not found in the map.
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if url, ok := pathToUrls[path]; ok {
@@ -20,6 +22,8 @@ func MapHandler(pathToUrls map[string]string, fallback http.Handler) http.Handle
 }
 
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
+	// Parse the YAML and build a map of paths to URLs, then return a MapHandler using that map.
+	// If there is an error parsing the YAML, return an error.
 	y, err := parseYAML(yml)
 	if err != nil {
 		return nil, err
@@ -30,6 +34,8 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 }
 
 func JSONHandler(j []byte, fallback http.Handler) (http.HandlerFunc, error) {
+	// Parse the JSON and build a map of paths to URLs, then return a MapHandler using that map.
+	// If there is an error parsing the JSON, return an error.
 	js, err := parseJSON(j)
 	if err != nil {
 		return nil, err
@@ -40,6 +46,8 @@ func JSONHandler(j []byte, fallback http.Handler) (http.HandlerFunc, error) {
 }
 
 func DBHandler(rows *sql.Rows, fallback http.Handler) (http.HandlerFunc, error) {
+	// Parse the database rows and build a map of paths to URLs, then return a MapHandler using that map.
+	// If there is an error parsing the database rows, return an error.
 	r, err := parseDBRows(rows)
 	if err != nil {
 		return nil, err
@@ -50,6 +58,7 @@ func DBHandler(rows *sql.Rows, fallback http.Handler) (http.HandlerFunc, error) 
 }
 
 func parseYAML(yml []byte) ([]YAMLPathToURL, error) {
+	// Parse the YAML into a slice of YAMLPathToURL structs.
 	yConfigs := []YAMLPathToURL{}
 	err := yaml.Unmarshal(yml, &yConfigs)
 	if err != nil {
@@ -59,6 +68,7 @@ func parseYAML(yml []byte) ([]YAMLPathToURL, error) {
 }
 
 func parseJSON(j []byte) ([]JSONPathToURL, error) {
+	// Parse the JSON into a slice of JSONPathToURL structs.
 	jConfigs := []JSONPathToURL{}
 	err := json.Unmarshal(j, &jConfigs)
 	if err != nil {
@@ -68,6 +78,7 @@ func parseJSON(j []byte) ([]JSONPathToURL, error) {
 }
 
 func parseDBRows(rows *sql.Rows) ([]DBPathToURL, error) {
+	// Parse the database rows into a slice of DBPathToURL structs.
 	result := []DBPathToURL{}
 	for rows.Next() {
 		var obj DBPathToURL
@@ -81,6 +92,7 @@ func parseDBRows(rows *sql.Rows) ([]DBPathToURL, error) {
 }
 
 func buildMapFromYAML(yConfigs []YAMLPathToURL) map[string]string {
+	// Build a map from the slice of YAMLPathToURL structs.
 	resultMap := map[string]string{}
 	for _, y := range yConfigs {
 		resultMap[y.Path] = y.URL
@@ -89,6 +101,7 @@ func buildMapFromYAML(yConfigs []YAMLPathToURL) map[string]string {
 }
 
 func buildMapFromJSON(jConfigs []JSONPathToURL) map[string]string {
+	// Build a map from the slice of JSONPathToURL structs.
 	resultMap := map[string]string{}
 	for _, j := range jConfigs {
 		resultMap[j.Path] = j.URL
@@ -97,6 +110,7 @@ func buildMapFromJSON(jConfigs []JSONPathToURL) map[string]string {
 }
 
 func buildMapFromDBRows(dbConfigs []DBPathToURL) map[string]string {
+	// Build a map from the slice of DBPathToURL structs.
 	resultMap := map[string]string{}
 	for _, r := range dbConfigs {
 		resultMap[r.Path] = r.URL
